@@ -27,34 +27,53 @@ contract WindowCRUD is TestHelper {
     function testUnauthorizedCreateWindow() public {
         vm.prank(alice);
 
-        vm.expectRevert("unauthorized");
+        vm.expectRevert();
         testSingleCreateWindow();
     }
 
     function testUnauthorizedCreateWindows() public {
         vm.prank(alice);
 
-        vm.expectRevert("unauthorized");
+        vm.expectRevert();
         testBatchCreateWindows();
     }
 
     function testBelowMinimumWindow() public {
-        //TODO: test creation of below minimum duration window
+        cmw.createWindow(block.timestamp);
+        vm.expectRevert();
+        cmw.createWindow(block.timestamp + 20 hours);
     }
 
     function testUpdateWindow() public {
-        //TODO: test updating a valid window
+        createDefaultWindows();
+
+        cmw.updateWindow(DEFAULT_WINDOW_BATCH, cmw.readWindowStart(DEFAULT_WINDOW_BATCH) + 1 weeks);
     }
 
     function testUpdateActiveWindow() public {
-        //TODO: test updating an active window
+        createDefaultWindows();
+
+        uint currId = cmw.checkCurrWindow();
+
+        vm.expectRevert("Current or next windows are not updatable");
+        cmw.updateWindow(currId, block.timestamp + 1 weeks);
+        vm.expectRevert("Current or next windows are not updatable");
+        cmw.updateWindow(currId + 1, block.timestamp + 3 weeks);
     }
 
     function testUpdateUninitiatedWindow() public {
-        //TODO: test a window which has not been set yet. 
+        vm.expectRevert("Id out of bounds");
+        cmw.updateWindow(3, block.timestamp);
     }
 
-    function updateCompressesAdjacentWindow() public {
-        //TODO: test updates which cause previous and next windows to be compressed (below minimum duration)
+    function testUpdateCompressesAdjacentWindow() public {
+        createDefaultWindows();
+
+        uint targetId = 6;
+        uint targetStart = cmw.readWindowStart(targetId);
+
+        vm.expectRevert("Previous window min interval error");
+        cmw.updateWindow(targetId, targetStart - 6 weeks - 1);
+
     }
 }

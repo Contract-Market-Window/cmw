@@ -15,7 +15,7 @@ library CMWLib {
 	}
 
 	function CMW2(uint256 start, uint256 end) internal view returns (bool b) {
-			b = start + ((end - start) / 2) > block.timestamp;
+			b = (start + ((end - start) / 2) > block.timestamp) && (block.timestamp > (start + 2 days));
 	}
 
 	function CMW3(uint256 start, uint256 end) internal view returns (bool b) {

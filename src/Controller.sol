@@ -11,14 +11,9 @@ contract Controller is AccessControl {
 
     constructor(address[] memory _owners) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(MINTER, _treasury);
         for (uint256 i; i < _owners.length; i++) {
             _grantRole(OWNER, _owners[i]);
         }
-    }
-
-    function grantMinterToTreasury(address _treasury) onlyRole(OWNER) {
-        _grantRole(MINTER, _treasury);
     }
 
     function isOwner(address sender) external view {
