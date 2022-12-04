@@ -2,12 +2,12 @@ pragma solidity ^0.8.13;
 
 import "lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
 
+/// WE ARE ASSUMING ALL OWNER PRIVATE KEYS ARE SAFE.
 contract Controller is AccessControl {
 
     bytes32 private constant OWNER = keccak256(abi.encodePacked("OWNER"));
     bytes32 private constant MINTER = keccak256(abi.encodePacked("MINTER"));
     bytes32 private constant PROTOCOL = keccak256(abi.encodePacked("PROTOCOL"));
-
 
     constructor(address[] memory _owners) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);

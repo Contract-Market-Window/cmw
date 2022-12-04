@@ -3,12 +3,15 @@ pragma solidity ^0.8.13;
 
 import "lib/openzeppelin-contracts/contracts/utils/Counters.sol";
 import "src/helpers/CMWLib.sol";
-import "src/helpers/Controlled.sol";
+import "src/bases/Controlled.sol";
+import "src/VRVault.sol";
 
 contract CMW is Controlled {
     using Counters for Counters.Counter;
     /// @dev Counter keeping track of the highest windowId
     Counters.Counter public _totalWindowIds;
+    /// @dev Variable rate vault needs to be notified of interest rate updates 
+    VRVault public vrVault;
     /// @dev id of the active window (could be out of date if checkCurrWindow has not been called in a while)
     uint256 public currWindowId;
     /// @dev Active interest rate in basis points (100% = 10,000)
@@ -31,6 +34,13 @@ contract CMW is Controlled {
     function setInterestRate(uint256 _interestRate) external onlyOwner {
         require((block.timestamp - windowStarts[checkCurrWindow()]) <= 1 days, "Rate edit time expired");
         interestRate = _interestRate;
+        _notifyVault(_interestRate);
+    }
+
+    /// @notice sets the variable rate vault
+    /// @dev does no interface compat check
+    function setVRVault(VRVault _vrVault) external onlyOwner {
+        vrVault = _vrVault;
     }
 
     /// @notice Sets the default window duration (window with highest id has this duration)
@@ -105,16 +115,16 @@ contract CMW is Controlled {
     } 
 
     /// @notice Checks whether a cmw stage is currently available
-    /// @param _cmwStage the cmw stage we wish to check for activity ( [cmw1, cmw2, cmw3] = [1, 2, 3] )
+    /// @param _cmwStage the cmw stage we wish to check for activity ( [cmw1, cmw2, cmw3] = [0, 1, 2] )
     /// @return stageIsActive true if the given cmw stage is currently active. 
     function checkCmwStage(uint256 _cmwStage) public returns (bool stageIsActive) {
-        require(_cmwStage == 1 || _cmwStage == 2 || _cmwStage == 3, "CMW out of bounds");
+        require(_cmwStage <= 2, "CMW out of bounds");
         uint256 id = checkCurrWindow();
         uint256 start = windowStarts[id];
         uint256 end = windowStarts[id + 1];
-        if (_cmwStage == 1) {
+        if (_cmwStage == 0) {
             stageIsActive = CMWLib.CMW1(start, end);
-        } else if (_cmwStage == 2) {
+        } else if (_cmwStage == 1) {
             stageIsActive = CMWLib.CMW2(start, end);
         } else {
             stageIsActive = CMWLib.CMW3(start, end);
@@ -125,15 +135,27 @@ contract CMW is Controlled {
     /// @dev Changes state to store the current window id
     /// @return currentWindowId id of the current window
     function checkCurrWindow() public returns (uint256 currentWindowId) {
+        currentWindowId = getCurrWindow();
+        currWindowId = currentWindowId;
+    }
+
+    /// @notice same as checkCurrWindow without modifying state
+    function getCurrWindow() public view returns (uint256 currentWindowId) {
         uint256 totalWindows = _totalWindowIds.current();
         for (uint256 i = currWindowId; i < totalWindows; i++) {
             if (windowStarts[i] < block.timestamp) {
                 if (windowStarts[i + 1] > block.timestamp) {
-                    currWindowId = i;
                     currentWindowId = i;
                     return currentWindowId;
                 }
             }
+        }
+    }
+
+    /// @notice updates interest rates on the vrVault
+    function _notifyVault(uint256 _newRate) private {
+        if(address(vrVault) != address(0)) {
+            vrVault.onInterestRateChange(_newRate);
         }
     }
 }
