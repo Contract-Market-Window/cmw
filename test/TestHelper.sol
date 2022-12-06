@@ -106,4 +106,24 @@ abstract contract TestHelper is Test {
 		treasury.mint{value: 5e18}();
 		vm.stopPrank();
 	}
+
+    function aliceDepositsIntoFR(uint256 _amount, uint256 _durationId) internal returns(uint256 debtTokenId) {
+        vm.prank(alice);
+        debtTokenId = frVault.deposit(_amount, _durationId);
+    }
+
+    function aliceWithdrawsFromFR(uint256 _amount, bool _isEarly, uint256 _debtTokenId) internal {
+        vm.prank(alice);
+        frVault.withdraw(_amount, _debtTokenId, _isEarly);
+    }
+
+    function aliceDepositsIntoVR(uint256 _amount, uint256 _cmwId) internal returns (uint256 debtTokenId){
+        vm.prank(alice);
+        debtTokenId = vrVault.deposit(_amount, _cmwId);
+    }
+
+    function aliceWithdrawsFromVR(uint256 _amount, bool _isEarly, uint256 _debtTokenId) internal {
+        vm.prank(alice);
+        vrVault.withdraw(_amount, _debtTokenId, _isEarly);
+    }
 }
